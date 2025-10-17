@@ -2,14 +2,69 @@
 # Imports
 # =============================
 import os
+import sys
 import time
 import queue
+import textwrap
 import threading
+import contextlib
+import importlib
+import importlib.util
 from datetime import datetime, timedelta
+from typing import List
 
-import numpy as np
-import pandas as pd
-import streamlit as st
+# -------------------------------------------------------------
+# Dependency guardrails
+# -------------------------------------------------------------
+
+def _load_required_modules():
+    """Import core third-party modules with a friendly error if missing.
+
+    Several hosted IDEs (including GitHub Codespaces) run ``python app.py``
+    before any dependencies have been installed.  Previously this resulted in
+    an opaque ``ModuleNotFoundError`` and the forwarded port showed "Cannot GET
+    /".  We intercept that situation and surface clear installation steps so
+    newcomers understand they must run ``pip install -r requirements.txt``
+    (or install the packages individually) before launching the dashboard.
+    """
+
+    required = {
+        "numpy": "np",
+        "pandas": "pd",
+        "streamlit": "st",
+        "requests": "requests",
+    }
+
+    missing: List[str] = []
+
+    for module_name, alias in required.items():
+        spec = importlib.util.find_spec(module_name)
+        if spec is None:
+            missing.append(module_name)
+            continue
+
+        module = importlib.import_module(module_name)
+        globals()[alias] = module
+
+    if not missing:
+        return
+
+    install_lines = "\n".join(f"        pip install {name}" for name in missing)
+    help_message = (
+        "Missing required Python dependencies: "
+        + ", ".join(missing)
+        + "\n\nInstall them with:\n\n"
+        + "    pip install -r requirements.txt\n\n"
+        + "or individually:\n\n"
+        + install_lines
+        + "\n\nAfter installing, re-run `python app.py` (or `streamlit run app.py`)."
+    )
+
+    print(help_message, file=sys.stderr)
+    raise SystemExit(1)
+
+
+_load_required_modules()
 
 # Optional fallback for minute/daily data
 try:
@@ -272,21 +327,6 @@ def _make_fig(df: pd.DataFrame, symbol: str, chart_type: str):
 # =============================
 #     Tab 1: Live Market Monitor
 # =============================
-
-
-
-
-
-
-
-
-
-
-import contextlib
-import requests
-import streamlit as st
-import pandas as pd
-from datetime import datetime
 
 with tab1:
     st.subheader("Live Market Monitor")

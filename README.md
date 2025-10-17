@@ -18,6 +18,12 @@ streamlit run app.py             # or simply: python app.py
 > entry point automatically, so you won't land on a blank "Cannot GET /" page
 > when the forwarded port opens.
 
+If the terminal prints a message about missing dependencies, run the
+`pip install -r requirements.txt` command above before trying again.  Codespaces
+and other fresh environments do not include packages such as NumPy or pandas by
+default, and the dashboard will exit with setup instructions until they are
+installed.
+
 The Streamlit UI provides tabs for live monitoring, order book exploration, alerts,
 news, and historical analytics.  Environment variables such as `SENDGRID_API_KEY` and
 `TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN` enable email or SMS alert toggles.
