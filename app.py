@@ -2,14 +2,69 @@
 # Imports
 # =============================
 import os
+import sys
 import time
 import queue
+import textwrap
 import threading
+import contextlib
+import importlib
+import importlib.util
 from datetime import datetime, timedelta
+from typing import List
 
-import numpy as np
-import pandas as pd
-import streamlit as st
+# -------------------------------------------------------------
+# Dependency guardrails
+# -------------------------------------------------------------
+
+def _load_required_modules():
+    """Import core third-party modules with a friendly error if missing.
+
+    Several hosted IDEs (including GitHub Codespaces) run ``python app.py``
+    before any dependencies have been installed.  Previously this resulted in
+    an opaque ``ModuleNotFoundError`` and the forwarded port showed "Cannot GET
+    /".  We intercept that situation and surface clear installation steps so
+    newcomers understand they must run ``pip install -r requirements.txt``
+    (or install the packages individually) before launching the dashboard.
+    """
+
+    required = {
+        "numpy": "np",
+        "pandas": "pd",
+        "streamlit": "st",
+        "requests": "requests",
+    }
+
+    missing: List[str] = []
+
+    for module_name, alias in required.items():
+        spec = importlib.util.find_spec(module_name)
+        if spec is None:
+            missing.append(module_name)
+            continue
+
+        module = importlib.import_module(module_name)
+        globals()[alias] = module
+
+    if not missing:
+        return
+
+    install_lines = "\n".join(f"        pip install {name}" for name in missing)
+    help_message = (
+        "Missing required Python dependencies: "
+        + ", ".join(missing)
+        + "\n\nInstall them with:\n\n"
+        + "    pip install -r requirements.txt\n\n"
+        + "or individually:\n\n"
+        + install_lines
+        + "\n\nAfter installing, re-run `python app.py` (or `streamlit run app.py`)."
+    )
+
+    print(help_message, file=sys.stderr)
+    raise SystemExit(1)
+
+
+_load_required_modules()
 
 # Optional fallback for minute/daily data
 try:
@@ -272,21 +327,6 @@ def _make_fig(df: pd.DataFrame, symbol: str, chart_type: str):
 # =============================
 #     Tab 1: Live Market Monitor
 # =============================
-
-
-
-
-
-
-
-
-
-
-import contextlib
-import requests
-import streamlit as st
-import pandas as pd
-from datetime import datetime
 
 with tab1:
     st.subheader("Live Market Monitor")
@@ -1552,3 +1592,50 @@ if st.session_state.monitoring:
 st.markdown("---")
 
 st.caption("Developed by Zia Quant Fund · 2025")
+
+
+# =============================
+# Entry point helper (for `python app.py` usage)
+# =============================
+def _run_via_streamlit_cli() -> None:
+    """Launch the Streamlit CLI so `python app.py` works out of the box.
+
+    Many hosted IDEs (GitHub Codespaces, Replit, etc.) invoke `python app.py`
+    when you press the "Run" button.  Without this helper the Streamlit app
+    wouldn't start, leading to a blank "Cannot GET /" page on the forwarded
+    port.  We delegate to the official CLI with sensible defaults so newcomers
+    don't need to remember the `streamlit run app.py` command.
+    """
+
+    if getattr(st, "_is_running_with_streamlit", False):
+        # Already inside a Streamlit context (e.g. launched via `streamlit run`).
+        return
+
+    import sys
+    from streamlit.web import cli as stcli  # type: ignore
+
+    port = os.environ.get("PORT", "8501")
+    address = os.environ.get("HOST", "0.0.0.0")
+    base_url = os.environ.get("STREAMLIT_BASE_URL_PATH", "").strip()
+
+    argv = [
+        "streamlit",
+        "run",
+        os.path.abspath(__file__),
+        "--server.headless",
+        "true",
+        "--server.address",
+        address,
+        "--server.port",
+        port,
+    ]
+
+    if base_url:
+        argv.extend(["--server.baseUrlPath", base_url])
+
+    sys.argv = argv
+    stcli.main()
+
+
+if __name__ == "__main__":
+    _run_via_streamlit_cli()
