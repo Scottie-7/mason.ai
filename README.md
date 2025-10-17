@@ -10,8 +10,13 @@ works fully offline thanks to the lightweight service layer implemented under `s
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt  # or install streamlit, pandas, numpy, plotly, yfinance
-streamlit run app.py
+streamlit run app.py             # or simply: python app.py
 ```
+
+> **Tip:** Hosted IDEs such as GitHub Codespaces often run `python app.py` when
+> you press the **Run** button.  The app now boots the Streamlit CLI from that
+> entry point automatically, so you won't land on a blank "Cannot GET /" page
+> when the forwarded port opens.
 
 The Streamlit UI provides tabs for live monitoring, order book exploration, alerts,
 news, and historical analytics.  Environment variables such as `SENDGRID_API_KEY` and

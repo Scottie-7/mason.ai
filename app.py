@@ -1552,3 +1552,50 @@ if st.session_state.monitoring:
 st.markdown("---")
 
 st.caption("Developed by Zia Quant Fund · 2025")
+
+
+# =============================
+# Entry point helper (for `python app.py` usage)
+# =============================
+def _run_via_streamlit_cli() -> None:
+    """Launch the Streamlit CLI so `python app.py` works out of the box.
+
+    Many hosted IDEs (GitHub Codespaces, Replit, etc.) invoke `python app.py`
+    when you press the "Run" button.  Without this helper the Streamlit app
+    wouldn't start, leading to a blank "Cannot GET /" page on the forwarded
+    port.  We delegate to the official CLI with sensible defaults so newcomers
+    don't need to remember the `streamlit run app.py` command.
+    """
+
+    if getattr(st, "_is_running_with_streamlit", False):
+        # Already inside a Streamlit context (e.g. launched via `streamlit run`).
+        return
+
+    import sys
+    from streamlit.web import cli as stcli  # type: ignore
+
+    port = os.environ.get("PORT", "8501")
+    address = os.environ.get("HOST", "0.0.0.0")
+    base_url = os.environ.get("STREAMLIT_BASE_URL_PATH", "").strip()
+
+    argv = [
+        "streamlit",
+        "run",
+        os.path.abspath(__file__),
+        "--server.headless",
+        "true",
+        "--server.address",
+        address,
+        "--server.port",
+        port,
+    ]
+
+    if base_url:
+        argv.extend(["--server.baseUrlPath", base_url])
+
+    sys.argv = argv
+    stcli.main()
+
+
+if __name__ == "__main__":
+    _run_via_streamlit_cli()
